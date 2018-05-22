@@ -6,7 +6,7 @@ import findPkg from "read-pkg-up";
 import { config } from "./util/pkg.mjs";
 import { name, version, description } from "../package.json";
 
-console.log(chalk.keyword('orange')(figlet.textSync(name)));
+console.log(chalk.keyword('orange')(figlet.textSync(name.replace(/^@?\w*\//i, ''))));
 console.log(chalk.green(description));
 console.log(chalk.red("veriosn: " + version));
 

@@ -323,7 +323,7 @@ var name = "@coretrek/corecomponents";
 var version = "0.1.1";
 var description = "Webcomponent builder";
 
-console.log(chalk.keyword('orange')(figlet.textSync(name)));
+console.log(chalk.keyword('orange')(figlet.textSync(name.replace(/^@?\w*\//i, ''))));
 console.log(chalk.green(description));
 console.log(chalk.red("veriosn: " + version));
 console.log();

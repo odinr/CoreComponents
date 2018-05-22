@@ -3,7 +3,7 @@
   "version": "0.1.2",
   "description": "Webcomponent builder",
   "bin": {
-    "coremodules": "./bin/corecomponents.js"
+    "corecomponents": "./bin/corecomponents.js"
   },
   "module": "./src/corecomponents.mjs",
   "main": "./bin/corecomponents.js",

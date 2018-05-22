@@ -1,0 +1,17 @@
+{
+  "exclude": ["node_modules/**", "**/*.json"],
+  "plugins": [
+    "transform-runtime",
+    ["transform-object-rest-spread", { "useBuiltIns": true }],
+    "external-helpers"
+  ],
+  "presets": [
+    [
+      "@babel/preset-env",
+      {
+        "modules": false,
+        "node": "current"
+      }
+    ]
+  ]
+}

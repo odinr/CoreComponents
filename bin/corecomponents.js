@@ -319,8 +319,8 @@ var basicTable = function basicTable() {
   });
 };
 
-var name = "corecomponenets";
-var version = "1.0.0";
+var name = "@coretrek/corecomponents";
+var version = "0.1.0";
 var description = "Webcomponent builder";
 
 console.log(chalk.keyword('orange')(figlet.textSync(name)));

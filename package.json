@@ -1,14 +1,16 @@
 {
-  "name": "corecomponenets",
-  "version": "1.0.0",
+  "name": "@coretrek/corecomponents",
+  "version": "0.1.0",
   "description": "Webcomponent builder",
   "bin": {
-    "coremodules": "./bin/coremodules.js"
+    "coremodules": "./bin/corecomponents.js"
   },
-  "module": "./src/coremodules.mjs",
-  "main": "./bin/coremodules.js",
+  "module": "./src/corecomponents.mjs",
+  "main": "./bin/corecomponents.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "rollup -c",
+    "version": "npm run build && git add -A bin",
+    "postversion": "git push && git push --tags && npm publish"
   },
   "author": "",
   "license": "ISC",

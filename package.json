@@ -1,6 +1,6 @@
 {
   "name": "@coretrek/corecomponents",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Webcomponent builder",
   "bin": {
     "corecomponents": "./bin/corecomponents.js"

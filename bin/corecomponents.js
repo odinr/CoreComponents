@@ -320,7 +320,7 @@ var basicTable = function basicTable() {
 };
 
 var name = "@coretrek/corecomponents";
-var version = "0.1.2";
+var version = "0.1.3";
 var description = "Webcomponent builder";
 
 console.log(chalk.keyword('orange')(figlet.textSync(name.replace(/^@?\w*\//i, ''))));

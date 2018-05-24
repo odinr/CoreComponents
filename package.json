@@ -5,6 +5,9 @@
   "bin": {
     "corecomponents": "./bin/corecomponents.js"
   },
+  "files": [
+    "bin"
+  ],
   "module": "./src/corecomponents.mjs",
   "main": "./bin/corecomponents.js",
   "scripts": {

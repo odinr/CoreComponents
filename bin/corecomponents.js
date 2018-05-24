@@ -33,11 +33,10 @@ var runtime = createCommonjsModule(function (module) {
     var iteratorSymbol = $Symbol.iterator || "@@iterator";
     var asyncIteratorSymbol = $Symbol.asyncIterator || "@@asyncIterator";
     var toStringTagSymbol = $Symbol.toStringTag || "@@toStringTag";
-    var inModule = 'object' === "object";
     var runtime = global.regeneratorRuntime;
 
     if (runtime) {
-      if (inModule) {
+      {
         // If regeneratorRuntime is defined globally and we're in a module,
         // make the exports object identical to regeneratorRuntime.
         module.exports = runtime;
@@ -50,7 +49,7 @@ var runtime = createCommonjsModule(function (module) {
     // module.exports (if we're in a module) or a new, empty object.
 
 
-    runtime = global.regeneratorRuntime = inModule ? module.exports : {};
+    runtime = global.regeneratorRuntime = module.exports;
 
     function wrap(innerFn, outerFn, self, tryLocsList) {
       // If outerFn provided and outerFn.prototype is a Generator, then outerFn.prototype instanceof Generator.
@@ -1073,7 +1072,7 @@ var _shared = createCommonjsModule(function (module) {
     return store[key] || (store[key] = value !== undefined ? value : {});
   })('versions', []).push({
     version: _core.version,
-    mode: _library ? 'pure' : 'global',
+    mode: 'pure',
     copyright: '© 2018 Denis Pushkarev (zloirock.ru)'
   });
 });
@@ -1282,8 +1281,6 @@ var _iterDefine = function (Base, NAME, Constructor, next, DEFAULT, IS_SET, FORC
     if (IteratorPrototype !== Object.prototype && IteratorPrototype.next) {
       // Set @@toStringTag to native iterators
       _setToStringTag(IteratorPrototype, TAG, true); // fix for some old engines
-
-      if (!_library && typeof IteratorPrototype[ITERATOR] != 'function') _hide(IteratorPrototype, ITERATOR, returnThis);
     }
   } // fix Array#{values, @@iterator}.name in V8 / FF
 
@@ -1297,7 +1294,7 @@ var _iterDefine = function (Base, NAME, Constructor, next, DEFAULT, IS_SET, FORC
   } // Define iterator
 
 
-  if ((!_library || FORCED) && (BUGGY || VALUES_BUG || !proto[ITERATOR])) {
+  if ((FORCED) && (BUGGY || VALUES_BUG || !proto[ITERATOR])) {
     _hide(proto, ITERATOR, $default);
   } // Plug for library
 
@@ -2044,7 +2041,7 @@ _export(_export.S + _export.F * !USE_NATIVE, PROMISE, {
     return capability.promise;
   }
 });
-_export(_export.S + _export.F * (_library || !USE_NATIVE), PROMISE, {
+_export(_export.S + _export.F * (_library), PROMISE, {
   // 25.4.4.6 Promise.resolve(x)
   resolve: function resolve(x) {
     return _promiseResolve(_library && this === Wrapper ? $Promise : this, x);
@@ -2370,7 +2367,7 @@ function _config() {
 }
 
 var name = "@coretrek/corecomponents";
-var version = "0.1.4";
+var version = "0.2.0";
 var description = "Webcomponent builder";
 
 console.clear();

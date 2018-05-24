@@ -1465,7 +1465,10 @@ var defineProperty$3 = createCommonjsModule(function (module, exports) {
 var _defineProperty = unwrapExports(defineProperty$3);
 
 var config = findPkg.sync();
-config.dirname = path.dirname(config.path);
+
+if (config.path !== undefined) {
+  config.dirname = path.dirname(config.path);
+}
 
 config.toString = function (attr) {
   var table = basicTable();

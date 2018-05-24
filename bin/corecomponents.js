@@ -280,7 +280,10 @@ var defineProperty$3 = createCommonjsModule(function (module, exports) {
 var _defineProperty = unwrapExports(defineProperty$3);
 
 var config = findPkg.sync();
-config.dirname = path.dirname(config.path);
+
+if (config.path !== undefined) {
+  config.dirname = path.dirname(config.path);
+}
 
 config.toString = function (attr) {
   var table = basicTable();
@@ -326,7 +329,11 @@ var description = "Webcomponent builder";
 console.log(chalk.keyword('orange')(figlet.textSync(name.replace(/^@?\w*\//i, ''))));
 console.log(chalk.green(description));
 console.log(chalk.red("veriosn: " + version));
-console.log();
-console.log(config.toString());
-console.log();
-program.command("init [options]", "init").command("build [options]", "build").command("serve [options]", "serve").parse(process.argv);
+
+if (config.pkg) {
+  console.log();
+  console.log(config.toString());
+  console.log();
+}
+
+program.command("init  <options>", "init").command("build [options]", "build").command("serve [options]", "serve").parse(process.argv);

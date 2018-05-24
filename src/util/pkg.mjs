@@ -4,9 +4,9 @@ import Table from "cli-table";
 import findPkg from "read-pkg-up";
 
 export const config = findPkg.sync();
-
-config.dirname = dirname(config.path);
-
+if(config.path !== undefined){
+    config.dirname = dirname(config.path);
+}
 config.toString = attr => {
     const table = basicTable();
     attr = attr || ['version','name', 'description'];

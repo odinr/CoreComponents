@@ -18,8 +18,8 @@ program
   .description("Compile source code")
   .option("-n, --name  <name>", "", config.pkg.name.replace(/@+\w*\//, ""))
   .option("-d, --dist  <dir> ", "", resolve(config.dirname, "demo"))
-  .option("-w, --watch  <dir> ", "")
   .option("-i, --input <src> ", "", resolve(config.dirname, "src/index.mjs"))
+  .option("-w, --watch", "")
   .parse(process.argv);
 
 const buildOptions = configBuilder({

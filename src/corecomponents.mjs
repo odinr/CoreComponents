@@ -14,4 +14,8 @@ console.log();
 console.log(config.toString());
 console.log();
 
-program.command("build [s]", "search with optional query").parse(process.argv);
+program
+.command("init [options]", "init")
+.command("build [options]", "build")
+.command("serve [options]", "serve")
+.parse(process.argv);

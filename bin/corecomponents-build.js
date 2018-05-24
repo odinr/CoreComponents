@@ -15,6 +15,9 @@ var cjs = require('rollup-plugin-commonjs');
 var babel = require('rollup-plugin-babel');
 var uglify = require('rollup-plugin-uglify');
 var program = require('commander');
+var figures = require('figures');
+var fs = require('fs');
+var filesize = require('filesize');
 
 function unwrapExports (x) {
 	return x && x.__esModule && Object.prototype.hasOwnProperty.call(x, 'default') ? x['default'] : x;
@@ -332,7 +335,7 @@ var _shared = createCommonjsModule(function (module) {
     return store[key] || (store[key] = value !== undefined ? value : {});
   })('versions', []).push({
     version: _core.version,
-    mode: 'pure',
+    mode: _library ? 'pure' : 'global',
     copyright: '© 2018 Denis Pushkarev (zloirock.ru)'
   });
 });
@@ -541,6 +544,8 @@ var _iterDefine = function (Base, NAME, Constructor, next, DEFAULT, IS_SET, FORC
     if (IteratorPrototype !== Object.prototype && IteratorPrototype.next) {
       // Set @@toStringTag to native iterators
       _setToStringTag(IteratorPrototype, TAG, true); // fix for some old engines
+
+      if (!_library && typeof IteratorPrototype[ITERATOR] != 'function') _hide(IteratorPrototype, ITERATOR, returnThis);
     }
   } // fix Array#{values, @@iterator}.name in V8 / FF
 
@@ -554,7 +559,7 @@ var _iterDefine = function (Base, NAME, Constructor, next, DEFAULT, IS_SET, FORC
   } // Define iterator
 
 
-  if ((FORCED) && (BUGGY || VALUES_BUG || !proto[ITERATOR])) {
+  if ((!_library || FORCED) && (BUGGY || VALUES_BUG || !proto[ITERATOR])) {
     _hide(proto, ITERATOR, $default);
   } // Plug for library
 
@@ -1301,7 +1306,7 @@ _export(_export.S + _export.F * !USE_NATIVE, PROMISE, {
     return capability.promise;
   }
 });
-_export(_export.S + _export.F * (_library), PROMISE, {
+_export(_export.S + _export.F * (_library || !USE_NATIVE), PROMISE, {
   // 25.4.4.6 Promise.resolve(x)
   resolve: function resolve$$1(x) {
     return _promiseResolve(_library && this === Wrapper ? $Promise : this, x);
@@ -1516,10 +1521,11 @@ var runtime$1 = createCommonjsModule(function (module) {
     var iteratorSymbol = $Symbol.iterator || "@@iterator";
     var asyncIteratorSymbol = $Symbol.asyncIterator || "@@asyncIterator";
     var toStringTagSymbol = $Symbol.toStringTag || "@@toStringTag";
+    var inModule = 'object' === "object";
     var runtime$$1 = global.regeneratorRuntime;
 
     if (runtime$$1) {
-      {
+      if (inModule) {
         // If regeneratorRuntime is defined globally and we're in a module,
         // make the exports object identical to regeneratorRuntime.
         module.exports = runtime$$1;
@@ -1532,7 +1538,7 @@ var runtime$1 = createCommonjsModule(function (module) {
     // module.exports (if we're in a module) or a new, empty object.
 
 
-    runtime$$1 = global.regeneratorRuntime = module.exports;
+    runtime$$1 = global.regeneratorRuntime = inModule ? module.exports : {};
 
     function wrap(innerFn, outerFn, self, tryLocsList) {
       // If outerFn provided and outerFn.prototype is a Generator, then outerFn.prototype instanceof Generator.
@@ -2247,6 +2253,64 @@ if (hadRuntime) {
 
 var regenerator = runtimeModule;
 
+var f$2 = Object.getOwnPropertySymbols;
+var _objectGops = {
+  f: f$2
+};
+
+var f$3 = {}.propertyIsEnumerable;
+var _objectPie = {
+  f: f$3
+};
+
+var $assign = Object.assign; // should work with symbols and should have deterministic property order (V8 bug)
+
+var _objectAssign = !$assign || _fails(function () {
+  var A = {};
+  var B = {}; // eslint-disable-next-line no-undef
+
+  var S = Symbol();
+  var K = 'abcdefghijklmnopqrst';
+  A[S] = 7;
+  K.split('').forEach(function (k) {
+    B[k] = k;
+  });
+  return $assign({}, A)[S] != 7 || Object.keys($assign({}, B)).join('') != K;
+}) ? function assign(target, source) {
+  // eslint-disable-line no-unused-vars
+  var T = _toObject(target);
+  var aLen = arguments.length;
+  var index = 1;
+  var getSymbols = _objectGops.f;
+  var isEnum = _objectPie.f;
+
+  while (aLen > index) {
+    var S = _iobject(arguments[index++]);
+    var keys = getSymbols ? _objectKeys(S).concat(getSymbols(S)) : _objectKeys(S);
+    var length = keys.length;
+    var j = 0;
+    var key;
+
+    while (length > j) if (isEnum.call(S, key = keys[j++])) T[key] = S[key];
+  }
+
+  return T;
+} : $assign;
+
+_export(_export.S + _export.F, 'Object', {
+  assign: _objectAssign
+});
+
+var assign = _core.Object.assign;
+
+var assign$1 = createCommonjsModule(function (module) {
+  module.exports = {
+    "default": assign,
+    __esModule: true
+  };
+});
+unwrapExports(assign$1);
+
 var asyncToGenerator = createCommonjsModule(function (module, exports) {
 
   exports.__esModule = true;
@@ -2349,7 +2413,8 @@ function _build() {
           case 9:
             out = _context.sent;
             return _context.abrupt("return", {
-              file: output.file
+              input: input.input,
+              output: output.file
             });
 
           case 11:
@@ -2409,8 +2474,13 @@ var buildConfig = configBuilder({
 });
 
 var buildComplete = function buildComplete(build$$1) {
-  var file = build$$1.file;
-  console.log(chalk.cyan(file));
+  var input = build$$1.input,
+      output = build$$1.output;
+
+  var _fs$statSync = fs.statSync(output),
+      size = _fs$statSync.size;
+
+  console.log(chalk.green(figures.tick), chalk.green(filesize(size)), figures.star, chalk.cyan("".concat(path.relative(config.dirname, input), " ").concat(figures.arrowRight, " ").concat(path.relative(config.dirname, output))));
 };
 
 _Promise.all([build(buildConfig("es", false)), build(buildConfig("es", true)), build(buildConfig("iife", true))]).then(function (builds) {

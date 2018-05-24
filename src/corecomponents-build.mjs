@@ -1,9 +1,13 @@
 import program from "commander";
 import chalk from "chalk";
-import { resolve } from "path";
+import figures from "figures";
+
+import fs from "fs";
+import filesize from "filesize";
+import { resolve, relative } from "path";
 
 import config from "./util/pkg.mjs";
-import build from "./util/build.mjs";
+import {build} from "./util/rollup.mjs";
 import configBuilder from "./util/build-config.mjs";
 
 program
@@ -21,8 +25,14 @@ const buildConfig = configBuilder({
 });
 
 const buildComplete = build => {
-  const { file } = build;
-  console.log(chalk.cyan(file));
+  const { input, output } = build;
+  const { size } = fs.statSync(output);
+  console.log(
+    chalk.green(figures.tick),
+    chalk.green(filesize(size)),
+    figures.star,
+    chalk.cyan(`${relative(config.dirname, input)} ${figures.arrowRight} ${relative(config.dirname, output)}`)
+  );
 };
 
 Promise.all([

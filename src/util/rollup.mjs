@@ -22,8 +22,28 @@ export async function build({ input, output, bundle }) {
   const bundler = await rollup.rollup(input);
   const out = await bundler.write(output);
   return {
-    file: output.file
+    input: input.input,
+    output: output.file
   };
+}
+
+export function watch({ input, output }){
+  const plugins = input.plugins || [];
+  input.plugins = plugins.concat([
+    cjs(),
+    resolve({ jsnext: true, browser: true }),
+    babel(output.format === "es" ? presetsModern : presetsCommonJS),
+  ]);
+  const watchOptions = {
+    ...input,
+    output: [output],
+    watch: {
+      watch: {
+        exclude: 'node_modules/**'
+      }
+    }
+  };
+  return rollup.watch(watchOptions);
 }
 
 export default build;

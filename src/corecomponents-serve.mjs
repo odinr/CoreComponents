@@ -2,68 +2,80 @@ import program from "commander";
 import chalk from "chalk";
 import fs from "fs";
 import filesize from "filesize";
-import { resolve,relative } from "path";
 import figures from "figures";
 
-import serve from "rollup-plugin-serve";
 import livereload from "livereload";
-import express from "express";
-import morgan from "morgan";
 
+import server from "./util/server.mjs";
 import { watch } from "./util/rollup.mjs";
 import config from "./util/pkg.mjs";
 import configBuilder from "./util/build-config.mjs";
 
-program
-  .description("Compile source code")
-  .option("-n, --name  <name>", "", config.pkg.name.replace(/@+\w*\//, ""))
-  .option("-d, --dist  <dir> ", "", resolve(config.dirname, "demo"))
-  .option("-i, --input <src> ", "", resolve(config.dirname, "src/index.mjs"))
-  .option("-w, --watch", "")
-  .parse(process.argv);
+(async () => {
+  const project = await config();
+  const { dirname, pkg } = project;
+  program
+    .description("Compile source code")
+    .option("-n, --name  <name>", "only apllies when watching", pkg.name.replace(/@+\w*\//, ""))
+    .option("-d, --dist  <dir> ", "target html root, also target for watcher", project.resolve("demo"))
+    .option("-i, --input <src> ", "only apllies when watching", project.resolve("src/index.mjs"))
+    .option("-w, --watch", "Watch source code")
+    .option("-r, --reload", "Reload content on new build")
+    .parse(process.argv);
 
-const buildOptions = configBuilder({
-  input: program.input,
-  name: program.name,
-  dist: program.dist,
-  dependencies: Object.keys(config.pkg.dependencies || {}),
-});
+  console.log(program.watch ? figures.circleFilled : figures.circle, "Watch");
+  console.log(program.reload ? figures.circleFilled : figures.circle, "LiveReload");
 
-function doWatch(type) {
-  const watcher = watch(buildOptions(type, true));
+  server({ sources: [program.dist, project.resolve("node_modules")] });
+  program.watch && doWatch(program, project);
+  program.reload && doReload(program);
+})();
 
-  watcher.on("event", e => {
-    switch (e.code) {
-      // case "BUNDLE_START":
-      //   console.log(chalk.green(`Building: ${e.input}`));
-      //   break;
-      case "BUNDLE_END":
-        const stats = fs.statSync(e.output[0]);
-        console.log(
-          chalk.green(figures.tick),
-          `${e.duration}ms`,
-          chalk.green(filesize(stats.size)),
-          figures.star,
-          chalk.cyan(`${relative(config.dirname, e.input)} ${figures.arrowRight} ${relative(config.dirname, e.output[0])}`)
-        );
-        break;
-
-      case "ERROR":
-      case "FATAL":
-        console.log(chalk.red(e.error));
-        break;
-    }
-  });
+function doReload({ dist }) {
+  const socket = livereload.createServer().watch(dist);
+  console.log(chalk.green(figures.tick), "LiveReload enabled",chalk.blue(program.input));
 }
 
-doWatch("es");
-doWatch("iife");
+function doWatch(program, project) {
+  const buildConfig = configBuilder({
+    project,
+    input: program.input,
+    name: program.name,
+    dist: program.dist,
+    dependencies: Object.keys(project.pkg.dependencies || {})
+  });
+  ["es", "iife"].map(type => {
+    const options = buildConfig(type, true);
+    watch(options).on("event", onBuild(options));
+  });
+  console.log(chalk.green(figures.tick), "Watcher enabled",chalk.blue(program.input));
+}
 
-const app = express();
-app.use(morgan('dev'));
-app.use(express.static(program.dist));
-app.use(express.static(resolve(config.dirname, 'node_modules')));
-app.listen(8080, () => console.log('DevServer started on ',chalk.blue('http://localhost:8080')));
 
-var lrserver = livereload.createServer();
-lrserver.watch(program.dist);
+function onBuild(options) {
+  const { project } = options;
+  return event => {
+    switch (event.code) {
+      case "BUNDLE_END":
+        const { duration, input } = event;
+        event.output.map(output => {
+          const { size } = fs.statSync(output);
+          console.log(
+            chalk.green(figures.tick),
+            `${duration}ms`,
+            chalk.green(filesize(size)),
+            chalk.cyan(
+              project.relative(input),
+              figures.arrowRight,
+              project.relative(output)
+            )
+          );
+        });
+        break;
+      case "ERROR":
+      case "FATAL":
+        console.log(chalk.red(event.error));
+        break;
+    }
+  };
+}

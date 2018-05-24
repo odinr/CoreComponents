@@ -33,12 +33,12 @@ async function checkTargetDir(path) {
   }
 }
 
-async function init(name) {
+async function init(name) {ll
   const target = resolve(process.cwd(), name);
-  console.log('\n',chalk.green(figures.smiley),`Initializing project ${chalk.blue(repo)}`);
+  console.log(target);
+  console.log();
+  console.log(`Initializing project ${chalk.blue(repo)}`);
   await checkTargetDir(target);
-  console.log("ok");
-  git.Clone(repo, target).then(e => {
-    console.log(e.getMasterCommit());
-  });
+  await git.Clone(repo, target);
+  process.chdir(target);
 }

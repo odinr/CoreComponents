@@ -2,7 +2,7 @@ import program from "commander";
 import chalk from "chalk";
 import figures from "figures";
 
-import fs from "fs";
+import fs from "fs-extra";
 import filesize from "filesize";
 import { resolve, relative } from "path";
 

@@ -1,6 +1,6 @@
 import program from "commander";
 import chalk from "chalk";
-import fs from "fs";
+import fs from "fs-extra";
 import filesize from "filesize";
 import figures from "figures";
 

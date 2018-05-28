@@ -2,9 +2,11 @@
 'use strict';
 
 var Table = require('cli-table');
+var fs = require('fs-extra');
 var path = require('path');
 var chalk = require('chalk');
 var findPkg = require('read-pkg-up');
+var npm = require('npm');
 var preset = require('@babel/preset-env');
 var runtime = require('babel-plugin-transform-runtime');
 var helpers = require('babel-plugin-external-helpers');
@@ -16,7 +18,6 @@ var babel = require('rollup-plugin-babel');
 var uglify = require('rollup-plugin-uglify');
 var program = require('commander');
 var figures = require('figures');
-var fs = require('fs');
 var filesize = require('filesize');
 
 function unwrapExports (x) {
@@ -44,10 +45,11 @@ var runtime$1 = createCommonjsModule(function (module) {
     var iteratorSymbol = $Symbol.iterator || "@@iterator";
     var asyncIteratorSymbol = $Symbol.asyncIterator || "@@asyncIterator";
     var toStringTagSymbol = $Symbol.toStringTag || "@@toStringTag";
+    var inModule = 'object' === "object";
     var runtime$$1 = global.regeneratorRuntime;
 
     if (runtime$$1) {
-      {
+      if (inModule) {
         // If regeneratorRuntime is defined globally and we're in a module,
         // make the exports object identical to regeneratorRuntime.
         module.exports = runtime$$1;
@@ -60,7 +62,7 @@ var runtime$1 = createCommonjsModule(function (module) {
     // module.exports (if we're in a module) or a new, empty object.
 
 
-    runtime$$1 = global.regeneratorRuntime = module.exports;
+    runtime$$1 = global.regeneratorRuntime = inModule ? module.exports : {};
 
     function wrap(innerFn, outerFn, self, tryLocsList) {
       // If outerFn provided and outerFn.prototype is a Generator, then outerFn.prototype instanceof Generator.
@@ -1083,7 +1085,7 @@ var _shared = createCommonjsModule(function (module) {
     return store[key] || (store[key] = value !== undefined ? value : {});
   })('versions', []).push({
     version: _core.version,
-    mode: 'pure',
+    mode: _library ? 'pure' : 'global',
     copyright: '© 2018 Denis Pushkarev (zloirock.ru)'
   });
 });
@@ -1292,6 +1294,8 @@ var _iterDefine = function (Base, NAME, Constructor, next, DEFAULT, IS_SET, FORC
     if (IteratorPrototype !== Object.prototype && IteratorPrototype.next) {
       // Set @@toStringTag to native iterators
       _setToStringTag(IteratorPrototype, TAG, true); // fix for some old engines
+
+      if (!_library && typeof IteratorPrototype[ITERATOR] != 'function') _hide(IteratorPrototype, ITERATOR, returnThis);
     }
   } // fix Array#{values, @@iterator}.name in V8 / FF
 
@@ -1305,7 +1309,7 @@ var _iterDefine = function (Base, NAME, Constructor, next, DEFAULT, IS_SET, FORC
   } // Define iterator
 
 
-  if ((FORCED) && (BUGGY || VALUES_BUG || !proto[ITERATOR])) {
+  if ((!_library || FORCED) && (BUGGY || VALUES_BUG || !proto[ITERATOR])) {
     _hide(proto, ITERATOR, $default);
   } // Plug for library
 
@@ -2052,7 +2056,7 @@ _export(_export.S + _export.F * !USE_NATIVE, PROMISE, {
     return capability.promise;
   }
 });
-_export(_export.S + _export.F * (_library), PROMISE, {
+_export(_export.S + _export.F * (_library || !USE_NATIVE), PROMISE, {
   // 25.4.4.6 Promise.resolve(x)
   resolve: function resolve$$1(x) {
     return _promiseResolve(_library && this === Wrapper ? $Promise : this, x);
@@ -2206,6 +2210,64 @@ var asyncToGenerator = createCommonjsModule(function (module, exports) {
 });
 var _asyncToGenerator = unwrapExports(asyncToGenerator);
 
+var f$2 = Object.getOwnPropertySymbols;
+var _objectGops = {
+  f: f$2
+};
+
+var f$3 = {}.propertyIsEnumerable;
+var _objectPie = {
+  f: f$3
+};
+
+var $assign = Object.assign; // should work with symbols and should have deterministic property order (V8 bug)
+
+var _objectAssign = !$assign || _fails(function () {
+  var A = {};
+  var B = {}; // eslint-disable-next-line no-undef
+
+  var S = Symbol();
+  var K = 'abcdefghijklmnopqrst';
+  A[S] = 7;
+  K.split('').forEach(function (k) {
+    B[k] = k;
+  });
+  return $assign({}, A)[S] != 7 || Object.keys($assign({}, B)).join('') != K;
+}) ? function assign(target, source) {
+  // eslint-disable-line no-unused-vars
+  var T = _toObject(target);
+  var aLen = arguments.length;
+  var index = 1;
+  var getSymbols = _objectGops.f;
+  var isEnum = _objectPie.f;
+
+  while (aLen > index) {
+    var S = _iobject(arguments[index++]);
+    var keys = getSymbols ? _objectKeys(S).concat(getSymbols(S)) : _objectKeys(S);
+    var length = keys.length;
+    var j = 0;
+    var key;
+
+    while (length > j) if (isEnum.call(S, key = keys[j++])) T[key] = S[key];
+  }
+
+  return T;
+} : $assign;
+
+_export(_export.S + _export.F, 'Object', {
+  assign: _objectAssign
+});
+
+var assign = _core.Object.assign;
+
+var assign$1 = createCommonjsModule(function (module) {
+  module.exports = {
+    "default": assign,
+    __esModule: true
+  };
+});
+var _Object$assign = unwrapExports(assign$1);
+
 _export(_export.S + _export.F * !_descriptors, 'Object', {
   defineProperty: _objectDp.f
 });
@@ -2336,6 +2398,76 @@ function () {
   }
 
   _createClass(ProjectPackage, [{
+    key: "npmInit",
+    value: function () {
+      var _npmInit = _asyncToGenerator(
+      /*#__PURE__*/
+      regenerator.mark(function _callee() {
+        var _this = this;
+
+        return regenerator.wrap(function _callee$(_context) {
+          while (1) {
+            switch (_context.prev = _context.next) {
+              case 0:
+                process.chdir(this.dirname);
+                _context.next = 3;
+                return new _Promise(function (resolve$$1) {
+                  return npm.load(_this.pkg, function (e) {
+                    return resolve$$1(e);
+                  });
+                });
+
+              case 3:
+                return _context.abrupt("return", _context.sent);
+
+              case 4:
+              case "end":
+                return _context.stop();
+            }
+          }
+        }, _callee, this);
+      }));
+
+      return function npmInit() {
+        return _npmInit.apply(this, arguments);
+      };
+    }()
+  }, {
+    key: "npmInstall",
+    value: function () {
+      var _npmInstall = _asyncToGenerator(
+      /*#__PURE__*/
+      regenerator.mark(function _callee2() {
+        var packages,
+            _args2 = arguments;
+        return regenerator.wrap(function _callee2$(_context2) {
+          while (1) {
+            switch (_context2.prev = _context2.next) {
+              case 0:
+                packages = _args2.length > 0 && _args2[0] !== undefined ? _args2[0] : [];
+                _context2.next = 3;
+                return new _Promise(function (resolve$$1, reject) {
+                  return npm.commands.install(packages, function (error, data) {
+                    return error ? reject(error) : resolve$$1(data);
+                  });
+                });
+
+              case 3:
+                return _context2.abrupt("return", _context2.sent);
+
+              case 4:
+              case "end":
+                return _context2.stop();
+            }
+          }
+        }, _callee2, this);
+      }));
+
+      return function npmInstall() {
+        return _npmInstall.apply(this, arguments);
+      };
+    }()
+  }, {
     key: "relative",
     value: function relative(path$$1) {
       return path.relative(this.dirname, path$$1);
@@ -2348,12 +2480,12 @@ function () {
   }, {
     key: "toString",
     value: function toString() {
-      var _this = this;
+      var _this2 = this;
 
-      var attr = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : ["version", "name", "description"];
+      var attr = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : ["version", "name", "description", "keywords"];
       var table$$1 = basicTable();
       attr.map(function (a) {
-        return table$$1.push(_defineProperty({}, a, _this.pkg[a]));
+        return table$$1.push(_defineProperty({}, a, _this2.pkg[a]));
       });
       table$$1.push({
         src: this.path
@@ -2361,104 +2493,88 @@ function () {
       return table$$1.toString();
     }
   }, {
+    key: "store",
+    value: function () {
+      var _store = _asyncToGenerator(
+      /*#__PURE__*/
+      regenerator.mark(function _callee3(pkg) {
+        return regenerator.wrap(function _callee3$(_context3) {
+          while (1) {
+            switch (_context3.prev = _context3.next) {
+              case 0:
+                _context3.next = 2;
+                return fs.writeJson(this.path, _Object$assign({}, this.pkg, pkg));
+
+              case 2:
+                _context3.next = 4;
+                return fs.readJSON(this.path);
+
+              case 4:
+                return _context3.abrupt("return", this.pkg = _context3.sent);
+
+              case 5:
+              case "end":
+                return _context3.stop();
+            }
+          }
+        }, _callee3, this);
+      }));
+
+      return function store(_x) {
+        return _store.apply(this, arguments);
+      };
+    }()
+  }, {
     key: "dirname",
     get: function get() {
       return path.dirname(this.path);
+    }
+  }, {
+    key: "basename",
+    get: function get() {
+      return path.basename(this.dirname);
+    }
+  }, {
+    key: "defaultPrefix",
+    get: function get() {
+      return "@coretrek/core-component";
     }
   }]);
 
   return ProjectPackage;
 }();
 
-function config(_x) {
+function config(_x2) {
   return _config.apply(this, arguments);
 }
 
 function _config() {
   _config = _asyncToGenerator(
   /*#__PURE__*/
-  regenerator.mark(function _callee(cwd) {
+  regenerator.mark(function _callee4(cwd) {
     var config;
-    return regenerator.wrap(function _callee$(_context) {
+    return regenerator.wrap(function _callee4$(_context4) {
       while (1) {
-        switch (_context.prev = _context.next) {
+        switch (_context4.prev = _context4.next) {
           case 0:
-            _context.next = 2;
+            _context4.next = 2;
             return findPkg({
               cwd: cwd
             });
 
           case 2:
-            config = _context.sent;
-            return _context.abrupt("return", config.pkg ? new ProjectPackage(config) : undefined);
+            config = _context4.sent;
+            return _context4.abrupt("return", config.pkg ? new ProjectPackage(config) : undefined);
 
           case 4:
           case "end":
-            return _context.stop();
+            return _context4.stop();
         }
       }
-    }, _callee, this);
+    }, _callee4, this);
   }));
   return _config.apply(this, arguments);
 }
-
-var f$2 = Object.getOwnPropertySymbols;
-var _objectGops = {
-  f: f$2
-};
-
-var f$3 = {}.propertyIsEnumerable;
-var _objectPie = {
-  f: f$3
-};
-
-var $assign = Object.assign; // should work with symbols and should have deterministic property order (V8 bug)
-
-var _objectAssign = !$assign || _fails(function () {
-  var A = {};
-  var B = {}; // eslint-disable-next-line no-undef
-
-  var S = Symbol();
-  var K = 'abcdefghijklmnopqrst';
-  A[S] = 7;
-  K.split('').forEach(function (k) {
-    B[k] = k;
-  });
-  return $assign({}, A)[S] != 7 || Object.keys($assign({}, B)).join('') != K;
-}) ? function assign(target, source) {
-  // eslint-disable-line no-unused-vars
-  var T = _toObject(target);
-  var aLen = arguments.length;
-  var index = 1;
-  var getSymbols = _objectGops.f;
-  var isEnum = _objectPie.f;
-
-  while (aLen > index) {
-    var S = _iobject(arguments[index++]);
-    var keys = getSymbols ? _objectKeys(S).concat(getSymbols(S)) : _objectKeys(S);
-    var length = keys.length;
-    var j = 0;
-    var key;
-
-    while (length > j) if (isEnum.call(S, key = keys[j++])) T[key] = S[key];
-  }
-
-  return T;
-} : $assign;
-
-_export(_export.S + _export.F, 'Object', {
-  assign: _objectAssign
-});
-
-var assign = _core.Object.assign;
-
-var assign$1 = createCommonjsModule(function (module) {
-  module.exports = {
-    "default": assign,
-    __esModule: true
-  };
-});
-unwrapExports(assign$1);
 
 var presetsCommonJS = {
   runtimeHelpers: true,

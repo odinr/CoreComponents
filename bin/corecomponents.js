@@ -2542,7 +2542,7 @@ function _config() {
 }
 
 var name = "@coretrek/corecomponents";
-var version = "0.2.0";
+var version = "0.3.0";
 var description = "Webcomponent builder";
 
 console.clear();
